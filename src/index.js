@@ -120,6 +120,11 @@ export default class RabbitLyrics {
 
         let lines = this.element.textContent.trim().split('\n');
 
+        // when this lyrics will jump reparse
+        if (lines.length <= 1 && this.element.innerHTML.indexOf('<div') >= 0) {
+            return this;
+        }
+
         this.element.textContent = '';
 
         let lastTime = 0; // Remember last time stamp. If next lines doesn't
