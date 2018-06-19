@@ -41,6 +41,7 @@ export default class RabbitLyrics {
     constructor(options) {
         this.element = options.element;
         this.element.classList.add(['rabbit-lyrics']);
+        this.currentLine = -1
 
         if (options.mediaElement) {
             this.mediaElement = options.mediaElement;
@@ -72,6 +73,7 @@ export default class RabbitLyrics {
         // Bind this to event handlers
         this.synchronizer = this.synchronizer.bind(this);
         this.scroller = this.scroller.bind(this);
+        this.gotoLine = this.gotoLine.bind(this);
 
         this.parseLyrics();
         this.enableLyrics();
@@ -215,7 +217,16 @@ export default class RabbitLyrics {
         let activeLineElements = [];
 
         this.lineElements.forEach(element => {
-            if (time >= element.dataset.start && time <= element.dataset.end) {
+
+            if (time >= element.dataset.start && time <= element.dataset.end && element.dataset.end != Infinity) {
+                // If line should be active
+                if (!element.classList.contains('active')) {
+                    // If it hasn't been activated
+                    changed = true;
+                    element.classList.add('active');
+                }
+                activeLineElements.push(element);
+            } else if (this.currentLine >= 0 && this.lineElements.indexOf(element) == this.currentLine ) {
                 // If line should be active
                 if (!element.classList.contains('active')) {
                     // If it hasn't been activated
@@ -232,6 +243,52 @@ export default class RabbitLyrics {
                 }
             }
         });
+
+        if (changed && activeLineElements.length > 0) {
+            // Calculate scroll top. Vertically align active lines in middle
+            let activeLinesOffsetTop = (activeLineElements[0].offsetTop +
+                activeLineElements[activeLineElements.length - 1].offsetTop +
+                activeLineElements[activeLineElements.length - 1].offsetHeight) / 2;
+            this.scrollTop = activeLinesOffsetTop - this.element.clientHeight / 2;
+
+            // Start scroller
+            clearInterval(this.scrollerInterval);
+            this.scrollerTimer = this.scrollerIntervalDuration;
+            this.scrollerInterval = setInterval(this.scroller, this.scrollerIntervalStep);
+        }
+    }
+
+    /**
+     * active special lyric line
+     *
+     * @param {HTMLElement} line The special line
+     * @return {HTMLMediaElement|null}
+     */
+    gotoLine(line) {
+        let changed = false; // If here are active lines changed
+        let activeLineElements = [];
+
+        for (var i = 0; i < this.lineElements.length; i++) {
+            var element = this.lineElements[i]
+            if (line == i) {
+                // If line should be active
+                if (!element.classList.contains('active')) {
+                    // If it hasn't been activated
+                    changed = true;
+                    element.classList.add('active');
+                }
+                activeLineElements.push(element);
+                this.currentLine = line
+            } else {
+                // If line should be inactive
+                if (element.classList.contains('active')) {
+                    // If it hasn't been deactivated
+                    changed = true;
+                    element.classList.remove('active');
+                }
+            }
+
+        }
 
         if (changed && activeLineElements.length > 0) {
             // Calculate scroll top. Vertically align active lines in middle
